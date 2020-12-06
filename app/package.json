@@ -17,6 +17,7 @@
     "i18next-browser-languagedetector": "^4.1.1",
     "i18next-locize-backend": "^4.0.13",
     "qrcode.react": "^1.0.0",
+    "querystring": "^0.2.0",
     "react": "latest",
     "react-dom": "latest",
     "react-i18next": "^11.3.5",

@@ -30,6 +30,16 @@ import i18n from './i18n'
 import languageNames from './languages'
 import logo from './img/logo.svg'
 
+import Button from '@material-ui/core/Button';
+import TextField from '@material-ui/core/TextField';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import querystring from 'querystring';
+
+
 const oneSecond = 1000
 const pollingTime = 30 * oneSecond
 const checkpointKeyLength = Number(process.env.REACT_APP_CHECKPOINT_KEY_LENGTH)
@@ -37,6 +47,7 @@ const adminDomain = process.env.REACT_APP_ADMIN_DOMAIN
 const serverDomain = process.env.REACT_APP_SERVER_DOMAIN
 const aboutUrl = process.env.REACT_APP_ABOUT_URL
 const isUsingLocize = Boolean(process.env.REACT_APP_LOCIZE_PRODUCT_ID)
+
 
 function ListItemLink (props) {
   return <ListItem button component='a' {...props} />
@@ -52,8 +63,31 @@ class App extends React.Component {
       isDrawerOpen: false,
       currentLanguage: i18n.language,
       urlScanState: undefined,
-      languages: []
+      languages: [],
+      showCreateDialog: false,
+
+      name: '',
+      phone: '',
+      lat: 0.0,
+      lng: 0.0,
+      
     }
+  }
+
+  handleStoreNameChange(e) {
+    this.setState({ name: e.target.value });
+  }
+
+  handlePhoneChange(e) {
+    this.setState({ phone: e.target.value });
+  }
+
+  handleLatChange(e) {
+    this.setState({ lat: e.target.value });
+  }
+
+  handleLngChange(e) {
+    this.setState({ lng: e.target.value });
   }
 
   componentDidMount () {
@@ -143,6 +177,23 @@ class App extends React.Component {
     this.setState({ currentLanguage: event.target.value })
   }
 
+  handleCreateCheckpoint() {
+    this.setState({ showCreateDialog: true });
+  }
+
+
+  handleCloseCreateCheckpoint() {
+    const { phone, lat, lng, name } = this.state;
+    this.setState({ showCreateDialog: false });
+
+    const qs = querystring.stringify({ phone, lat, lng, name });
+
+    if (!phone || !name) {
+      return;
+    }
+    window.open(`${serverDomain}/request-checkpoint?${qs}`);
+  }
+
   render () {
     const { currentTab, status, statusLoaded, isDrawerOpen, currentLanguage, urlScanState, languages } = this.state
     const CurrentPage = (currentTab === 'checkpoints')
@@ -153,6 +204,66 @@ class App extends React.Component {
 
     return (
       <div>
+          <Dialog open={this.state.showCreateDialog} onClose={this.handleCloseCreateCheckpoint.bind(this)} aria-labelledby="form-dialog-title">
+            <DialogTitle id="form-dialog-title">Subscribe</DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                Please enter your Store name and Phone Number
+              </DialogContentText>
+              
+              <TextField
+                value={this.state.name}
+                onChange={this.handleStoreNameChange.bind(this)}
+                autoFocus
+                margin="dense"
+                id="name"
+                label="Store name"
+                type="text"
+                fullWidth
+              />
+
+              <TextField
+                autoFocus
+                onChange={this.handlePhoneChange.bind(this)}
+                value={this.state.phone}
+                margin="dense"
+                id="phone"
+                label="Contact number"
+                type="phone"
+                fullWidth
+              />
+
+              <TextField
+                value={this.state.lat}
+                onChange={this.handleLatChange.bind(this)}
+
+                autoFocus
+                margin="dense"
+                id="lat"
+                label="Latitude"
+                type="number"
+                fullWidth
+              />
+
+              <TextField
+                value={this.state.lng}
+                onChange={this.handleLngChange.bind(this)}
+                autoFocus
+                margin="dense"
+                id="lng"
+                label="Longitude"
+                type="number"
+                fullWidth
+              />
+
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={this.handleCloseCreateCheckpoint.bind(this)} color="primary">
+                Okay
+              </Button>
+            </DialogActions>
+          </Dialog>
+
         <AppBar position='static' color='secondary'>
           <Container maxWidth='sm' style={{ flexGrow: 1 }}>
             <Toolbar>
@@ -235,6 +346,8 @@ class App extends React.Component {
               </ListItemIcon>
               <ListItemText primary=<Translation>{t => t('menuAdminButton')}</Translation> />
             </ListItemLink>
+            
+            <ListItem onClick={this.handleCreateCheckpoint.bind(this)} button>Create a checkpoint</ListItem>
           </List>
         </SwipeableDrawer>
       </div>
