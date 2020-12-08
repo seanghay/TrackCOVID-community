@@ -126,6 +126,7 @@ class App extends React.Component {
   }
 
   async checkUrl () {
+  
     const urlParams = new URLSearchParams(window.location.search)
     const checkpointKey = urlParams.get('checkpoint')
     if (checkpointKey) {

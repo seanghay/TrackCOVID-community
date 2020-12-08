@@ -1,88 +1,114 @@
 /* globals fetch */
+const { v4: uuidv4 } = require('uuid');
 
-function TrackCovid (config) {
+function userUuid() {
+  const key = '__user_id'
+  const value = localStorage.getItem(key);
+  if (!value) {
+    const uuid = uuidv4();
+    localStorage.setItem(key, uuid);
+    return uuid;
+  }
+  return value;
+}
+
+function TrackCovid(config) {
   const {
     estimatedDiagnosisDelay,
     getCheckpoints,
     setCheckpoints,
     contactWindowBefore,
     contactWindowAfter,
-    serverBaseUrl
-  } = config
+    serverBaseUrl,
+  } = config;
 
-  const oneHour = 1000 * 60 * 60
-  const oneDay = oneHour * 24
-  const contactWindowBeforeHours = contactWindowBefore * oneHour
-  const contactWindowAfterHours = contactWindowAfter * oneHour
-  const estimatedDiagnosisDelayDays = estimatedDiagnosisDelay * oneDay
+  const oneHour = 1000 * 60 * 60;
+  const oneDay = oneHour * 24;
+  const contactWindowBeforeHours = contactWindowBefore * oneHour;
+  const contactWindowAfterHours = contactWindowAfter * oneHour;
+  const estimatedDiagnosisDelayDays = estimatedDiagnosisDelay * oneDay;
 
-  async function serverRequest (method, url = '', body) {
+  async function serverRequest(method, url = "", body) {
     const response = await fetch(`${serverBaseUrl}/${url}`, {
       method,
       headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json'
+        Accept: "application/json",
+        "Content-Type": "application/json",
       },
-      body: body ? JSON.stringify(body) : undefined
-    })
-    const responseJSON = response.json()
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const responseJSON = response.json();
     if (responseJSON.error) {
-      throw new Error(`request-failed: ${serverBaseUrl}/${url}`)
+      throw new Error(`request-failed: ${serverBaseUrl}/${url}`);
     }
-    return responseJSON
+    return responseJSON;
   }
 
-  async function addCheckpoint (checkpointKey) {
-    const checkpoints = await getCheckpoints()
+  async function addCheckpoint(checkpointKey) {
+    const checkpoints = await getCheckpoints();
     const checkpointObj = {
       key: checkpointKey,
-      timestamp: Date.now()
-    }
-    checkpoints.push(checkpointObj)
-    await setCheckpoints(checkpoints)
-    return checkpointObj
+      timestamp: Date.now(),
+    };
+    checkpoints.push(checkpointObj);
+    await setCheckpoints(checkpoints);
+    return checkpointObj;
   }
 
   // Delete expired checkpoints and return the rest
-  async function getRecentCheckpoints () {
-    const checkpoints = await getCheckpoints()
-    const recentCheckpoints = checkpoints.filter(checkpoint => {
-      return Date.now() - checkpoint.timestamp <= estimatedDiagnosisDelayDays
-    })
-    await setCheckpoints(recentCheckpoints)
-    return recentCheckpoints
+  async function getRecentCheckpoints() {
+    const checkpoints = await getCheckpoints();
+    const recentCheckpoints = checkpoints.filter((checkpoint) => {
+      return Date.now() - checkpoint.timestamp <= estimatedDiagnosisDelayDays;
+    });
+    await setCheckpoints(recentCheckpoints);
+    return recentCheckpoints;
   }
 
-  function joinCheckpoint (checkpointKey) {
-    return addCheckpoint(checkpointKey)
+  async function joinCheckpoint(checkpointKey) {
+    try {
+      const serverResponse = await serverRequest("POST", "send", {
+        checkpointKey,
+        userUuid: userUuid()
+      });
+
+      console.dir(serverResponse);
+    } catch (e) {
+      //ignored
+      console.error(e);
+    }
+    return addCheckpoint(checkpointKey);
   }
 
-  async function exportCheckpoints () {
-    const recentCheckpoints = await getRecentCheckpoints()
-    return recentCheckpoints
+  async function exportCheckpoints() {
+    const recentCheckpoints = await getRecentCheckpoints();
+    return recentCheckpoints;
   }
 
-  async function getExposureStatus () {
-    const recentCheckpoints = await getRecentCheckpoints()
-    const response = await serverRequest('GET')
-    const exposedCheckpoints = response.error ? [] : response.checkpoints
-    const matches = recentCheckpoints.filter(visited => {
-      return exposedCheckpoints.filter(exposed => {
-        return (
-          (visited.key === exposed.key) &&
-          (visited.timestamp >= (exposed.timestamp - contactWindowBeforeHours)) &&
-          (visited.timestamp - exposed.timestamp <= contactWindowAfterHours)
-        )
-      }).length > 0
-    })
-    return matches.length > 0
+  async function getExposureStatus() {
+    const recentCheckpoints = await getRecentCheckpoints();
+    const response = await serverRequest("GET");
+
+    const exposedCheckpoints = response.error ? [] : response.checkpoints;
+    const matches = recentCheckpoints.filter((visited) => {
+      return (
+        exposedCheckpoints.filter((exposed) => {
+          return (
+            visited.key === exposed.key &&
+            visited.timestamp >= exposed.timestamp - contactWindowBeforeHours &&
+            visited.timestamp - exposed.timestamp <= contactWindowAfterHours
+          );
+        }).length > 0
+      );
+    });
+    return matches.length > 0;
   }
 
   return {
     joinCheckpoint,
     getExposureStatus,
-    exportCheckpoints
-  }
+    exportCheckpoints,
+  };
 }
 
-module.exports = TrackCovid
+module.exports = TrackCovid;

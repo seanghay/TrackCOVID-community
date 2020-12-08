@@ -98,7 +98,6 @@ app.get('/checkpoint', function (req, res) {
 })
 
 app.get('/checkpoint.pdf', (req, res) => {
-  
   const checkpointKey = sha256(String(Math.random())).substring(0, checkpointKeyLength)
   generateCheckpoint(checkpointKey, res)
 })
