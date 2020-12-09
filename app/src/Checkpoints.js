@@ -64,13 +64,12 @@ class Checkpoints extends React.Component {
   }
 
   async handleScan (data) {
-
     if (!data) {
       return;
     }
-  
+    
     this.setState({ currentData: data });
-
+    
     if (!userPhoneNumber()) {  
       this.setState({ 
         mode: 'scan-success',
@@ -79,7 +78,7 @@ class Checkpoints extends React.Component {
 
       return;
     }
-  
+
     await this.submitData(data);
   }
 
@@ -97,9 +96,8 @@ class Checkpoints extends React.Component {
     console.log({ isPhoneValid });
     this.setState({ phone, isPhoneValid });
   }
-
+  
   handlePhoneDialogCancel() {
-
     this.setState({ 
       phoneDialog: false,
       mode: 'home',

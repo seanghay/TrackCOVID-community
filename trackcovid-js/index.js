@@ -1,7 +1,6 @@
 /* globals fetch */
 const { v4: uuidv4 } = require('uuid');
 
-
 function userPhoneNumber() {
   const key = '__user_phone_number'
   return localStorage.getItem(key);

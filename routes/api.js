@@ -13,6 +13,7 @@ const phoneNumberRegex = /(855|\+855|)(0*)((1[0-9]|2[3-6]|3[12345689]|4[2-4]|5[2
 
 apiRouter.post('/checkpoints/send', async (req, res) => {
   
+  console.log(req.body);
   const { checkpointKey, userUuid} = req.body;
   
   if (!checkpointKey || !userUuid) {
@@ -22,8 +23,8 @@ apiRouter.post('/checkpoints/send', async (req, res) => {
 
   const { phone } = req.body;
   
-  if (!phone || typeof phone !== 'string' && !phoneNumberRegex.test(phone)) {
-    delete body.phone;
+  if (!phone || typeof phone !== 'string' || !phoneNumberRegex.test(phone)) {
+    delete req.body.phone;
   }
 
   try {
