@@ -8,6 +8,10 @@ const userCheckpointSchema = new mongoose.Schema({
     checkpointKey: {
         type: String,
         required: true,
+    },
+    phone: {
+        type: String,
+        required: false,
     }
 }, { 
     timestamps: true

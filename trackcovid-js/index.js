@@ -1,6 +1,12 @@
 /* globals fetch */
 const { v4: uuidv4 } = require('uuid');
 
+
+function userPhoneNumber() {
+  const key = '__user_phone_number'
+  return localStorage.getItem(key);
+}
+
 function userUuid() {
   const key = '__user_id'
   const value = localStorage.getItem(key);
@@ -67,9 +73,11 @@ function TrackCovid(config) {
 
   async function joinCheckpoint(checkpointKey) {
     try {
+
       const serverResponse = await serverRequest("POST", "send", {
         checkpointKey,
-        userUuid: userUuid()
+        userUuid: userUuid(),
+        phone: userPhoneNumber(),
       });
 
       console.dir(serverResponse);

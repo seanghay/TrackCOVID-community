@@ -8,6 +8,9 @@ const estimatedDiagnosisDelay = Number(process.env['QUARANTINE_DAYS']) * oneDay
 
 const apiRouter = express.Router()
 
+const phoneNumberRegex = /(855|\+855|)(0*)((1[0-9]|2[3-6]|3[12345689]|4[2-4]|5[2-5]|6[0-9]|7[1-9]|8[13456789]|9[02356789])\d{6,7})/;
+
+
 apiRouter.post('/checkpoints/send', async (req, res) => {
   
   const { checkpointKey, userUuid} = req.body;
@@ -15,6 +18,12 @@ apiRouter.post('/checkpoints/send', async (req, res) => {
   if (!checkpointKey || !userUuid) {
     res.status(200).json({ message: 'invalid data'});
     return;
+  }
+
+  const { phone } = req.body;
+  
+  if (!phone || typeof phone !== 'string' && !phoneNumberRegex.test(phone)) {
+    delete body.phone;
   }
 
   try {

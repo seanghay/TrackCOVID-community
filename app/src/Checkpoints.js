@@ -11,17 +11,42 @@ import Link from '@material-ui/core/Link'
 import virusIcon from './img/virus-icon.png'
 import API from './api'
 
+import TextField from '@material-ui/core/TextField';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+
+
 const checkpointKeyLength = Number(process.env.REACT_APP_CHECKPOINT_KEY_LENGTH)
 const aboutUrl = process.env.REACT_APP_ABOUT_URL
+
+const phoneNumberRegex = /(855|\+855|)(0*)((1[0-9]|2[3-6]|3[12345689]|4[2-4]|5[2-5]|6[0-9]|7[1-9]|8[13456789]|9[02356789])\d{6,7})/;
 
 const initialState = {
   mode: 'home',
   checkpointKey: null,
   checkpointTime: null,
-  legacyMode: false
+  legacyMode: false,
+  phoneDialog: false,
+  currentData: null,
+  phone: '',
+  isPhoneValid: false,
+}
+
+function userPhoneNumber() {
+  const key = '__user_phone_number';
+  return localStorage.getItem(key);
+}
+
+function setUserPhoneNumber(phone) {
+  const key = '__user_phone_number';
+  localStorage.setItem(key, phone);
 }
 
 class Checkpoints extends React.Component {
+
   constructor () {
     super()
     this.state = initialState
@@ -39,17 +64,23 @@ class Checkpoints extends React.Component {
   }
 
   async handleScan (data) {
-    if (data) {
-      // QR code is a url
-      const urlSplit = data.split('?checkpoint=')
-      if ((urlSplit.length === 2) && (urlSplit[1].length === checkpointKeyLength)) {
-        await API.joinCheckpoint(urlSplit[1])
-        this.setState({ mode: 'scan-success' })
-        setTimeout(() => this.reset(), 10000) // automatically go back to main screen after 10 seconds
-      } else {
-        this.setState({ mode: 'scan-error' })
-      }
+
+    if (!data) {
+      return;
     }
+  
+    this.setState({ currentData: data });
+
+    if (!userPhoneNumber()) {  
+      this.setState({ 
+        mode: 'scan-success',
+        phoneDialog: true
+       });
+
+      return;
+    }
+  
+    await this.submitData(data);
   }
 
   handleScanError () {
@@ -58,6 +89,47 @@ class Checkpoints extends React.Component {
 
   openImageDialog () {
     this.refs.checkpointQR.openImageDialog()
+  }
+
+  handlePhoneChange(e) {
+    const phone = e.target.value;
+    const isPhoneValid = phoneNumberRegex.test(phone);
+    console.log({ isPhoneValid });
+    this.setState({ phone, isPhoneValid });
+  }
+
+  handlePhoneDialogCancel() {
+
+    this.setState({ 
+      phoneDialog: false,
+      mode: 'home',
+    });
+  }
+
+  async handlePhoneDialogClose() {
+
+    this.setState({ phoneDialog: false });
+    
+    const data = this.state.currentData;
+
+    if (!data) {
+      return;
+    }
+
+    this.state.phone && setUserPhoneNumber(this.state.phone);
+    await this.submitData(data);
+  }
+
+  async submitData(data) {
+    // QR code is a url
+    const urlSplit = data.split('?checkpoint=')
+    if ((urlSplit.length === 2) && (urlSplit[1].length === checkpointKeyLength)) {
+      await API.joinCheckpoint(urlSplit[1])
+      this.setState({ mode: 'scan-success' })
+      setTimeout(() => this.reset(), 10000) // automatically go back to main screen after 10 seconds
+    } else {
+      this.setState({ mode: 'scan-error' })
+    }
   }
 
   render () {
@@ -177,8 +249,40 @@ class Checkpoints extends React.Component {
         </Grid>
       )
     }
-    return content
+    return <div>
+        <Dialog open={this.state.phoneDialog} onClose={this.handlePhoneDialogClose.bind(this)} aria-labelledby="form-dialog-title">
+          <DialogTitle id="form-dialog-title">Phone Number</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Please enter your phone number
+            </DialogContentText>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="name"
+              label="Phone number"
+              type="phone"
+              value={this.state.phone}
+              onChange={this.handlePhoneChange.bind(this)}
+              fullWidth
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={this.handlePhoneDialogCancel.bind(this)} color="primary">
+              Cancel
+            </Button>
+            <Button
+            disabled={!this.state.isPhoneValid}
+            onClick={this.handlePhoneDialogClose.bind(this)} color="primary">
+              Submit
+            </Button>
+          </DialogActions>
+        </Dialog>
+        
+        {content}
+      </div>
   }
+
 }
 
 export default withTheme(Checkpoints)
