@@ -22,7 +22,7 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 const checkpointKeyLength = Number(process.env.REACT_APP_CHECKPOINT_KEY_LENGTH)
 const aboutUrl = process.env.REACT_APP_ABOUT_URL
 
-const phoneNumberRegex = /(855|\+855|)(0*)((1[0-9]|2[3-6]|3[12345689]|4[2-4]|5[2-5]|6[0-9]|7[1-9]|8[13456789]|9[02356789])\d{6,7})/;
+export const phoneNumberRegex = /(855|\+855|)(0*)((1[0-9]|2[3-6]|3[12345689]|4[2-4]|5[2-5]|6[0-9]|7[1-9]|8[13456789]|9[02356789])\d{6,7})/;
 
 const initialState = {
   mode: 'home',
@@ -35,12 +35,12 @@ const initialState = {
   isPhoneValid: false,
 }
 
-function userPhoneNumber() {
+export function userPhoneNumber() {
   const key = '__user_phone_number';
   return localStorage.getItem(key);
 }
 
-function setUserPhoneNumber(phone) {
+export function setUserPhoneNumber(phone) {
   const key = '__user_phone_number';
   localStorage.setItem(key, phone);
 }
@@ -93,7 +93,6 @@ class Checkpoints extends React.Component {
   handlePhoneChange(e) {
     const phone = e.target.value;
     const isPhoneValid = phoneNumberRegex.test(phone);
-    console.log({ isPhoneValid });
     this.setState({ phone, isPhoneValid });
   }
   

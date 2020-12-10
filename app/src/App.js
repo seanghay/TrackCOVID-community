@@ -17,7 +17,7 @@ import List from '@material-ui/core/List'
 import ListItem from '@material-ui/core/ListItem'
 import ListItemText from '@material-ui/core/ListItemText'
 import ListItemIcon from '@material-ui/core/ListItemIcon'
-import CheckpointsPage from './Checkpoints'
+import CheckpointsPage, { userPhoneNumber, phoneNumberRegex, setUserPhoneNumber } from './Checkpoints'
 import ExposuresPage from './Exposures'
 import ReportPage from './Report'
 import StatusAlert from './StatusAlert'
@@ -48,7 +48,6 @@ const serverDomain = process.env.REACT_APP_SERVER_DOMAIN
 const aboutUrl = process.env.REACT_APP_ABOUT_URL
 const isUsingLocize = Boolean(process.env.REACT_APP_LOCIZE_PRODUCT_ID)
 
-
 function ListItemLink (props) {
   return <ListItem button component='a' {...props} />
 }
@@ -70,7 +69,11 @@ class App extends React.Component {
       phone: '',
       lat: 0.0,
       lng: 0.0,
-      
+
+      showPhoneDialog: false,
+      currentData: null,
+      userPhoneNumber: '',
+      isUserPhoneValid: false,
     }
   }
 
@@ -125,20 +128,48 @@ class App extends React.Component {
     }
   }
 
+  async submitData(checkpointKey) {
+    try {
+      await API.joinCheckpoint(checkpointKey)
+      this.setState({ urlScanState: 'scan-success' })
+      window.history.replaceState(null, null, window.location.pathname)
+    } catch (e) {
+      console.error(e)
+      this.setState({ urlScanState: 'scan-error' })
+      window.history.replaceState(null, null, window.location.pathname)
+    }
+  }
+
+  async handleUserPhoneNumberChange(e) {
+    const phone = e.target.value;
+    if (!phone) return;
+    const isPhoneValid = phoneNumberRegex.test(phone);
+    this.setState({ userPhoneNumber: phone, isUserPhoneValid: isPhoneValid });
+  }
+
+  async handlePhoneDialogCancel() {
+    this.setState({ currentData: null, showPhoneDialog: false });
+  }
+
+  async handlePhoneNumberDialogClose() {
+    this.setState({ currentData: null, showPhoneDialog: false });
+    const currentData = this.state.currentData;
+    if (!currentData) {
+      return;
+    }
+    setUserPhoneNumber(this.state.userPhoneNumber);
+    await this.submitData(currentData);
+  }
+
   async checkUrl () {
-  
     const urlParams = new URLSearchParams(window.location.search)
     const checkpointKey = urlParams.get('checkpoint')
     if (checkpointKey) {
-      if (checkpointKey.length === checkpointKeyLength) {
-        try {
-          await API.joinCheckpoint(checkpointKey)
-          this.setState({ urlScanState: 'scan-success' })
-          window.history.replaceState(null, null, window.location.pathname)
-        } catch (e) {
-          console.error(e)
-          this.setState({ urlScanState: 'scan-error' })
-          window.history.replaceState(null, null, window.location.pathname)
+      if (checkpointKey.length === checkpointKeyLength) {  
+         if (userPhoneNumber()) {
+            await this.submitData(checkpointKey);
+         } else {
+          this.setState({ currentData: checkpointKey, showPhoneDialog: true });
         }
       } else {
         this.setState({ urlScanState: 'scan-error' })
@@ -205,6 +236,37 @@ class App extends React.Component {
 
     return (
       <div>
+
+        <Dialog open={this.state.showPhoneDialog} onClose={this.handlePhoneNumberDialogClose.bind(this)} aria-labelledby="form-dialog-title">
+          <DialogTitle id="form-dialog-title">Phone Number</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Please enter your phone number
+            </DialogContentText>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="name"
+              label="Phone number"
+              type="phone"
+              value={this.state.userPhoneNumber}
+              onChange={this.handleUserPhoneNumberChange.bind(this)}
+              fullWidth
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={this.handlePhoneDialogCancel.bind(this)} color="primary">
+              Cancel
+            </Button>
+            <Button
+            disabled={!this.state.isUserPhoneValid}
+            onClick={this.handlePhoneNumberDialogClose.bind(this)} color="primary">
+              Submit
+            </Button>
+          </DialogActions>
+        </Dialog>
+        
+
           <Dialog open={this.state.showCreateDialog} onClose={this.handleCloseCreateCheckpoint.bind(this)} aria-labelledby="form-dialog-title">
             <DialogTitle id="form-dialog-title">Subscribe</DialogTitle>
             <DialogContent>
